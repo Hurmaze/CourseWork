@@ -6,7 +6,7 @@ namespace Projects
     {
         private static uint _counterID = 0;
         private List<Task> _tasks;
-        public string ProjectTheme { get; private set; }
+        public Project Project { get; private set; }
         public readonly uint EmployeeID;
         public string Name { get; private set; }
         public uint OnTask { get; private set; }
@@ -14,7 +14,7 @@ namespace Projects
         public bool OnProject { get; private set; }
         public Employee() 
         {
-            ProjectTheme = "Out of project";
+            Project = null;
             EmployeeID = ++_counterID; 
             Name = "Misha" + EmployeeID;  
             OnTask = 0;
@@ -32,20 +32,25 @@ namespace Projects
                 EmployeeID = toCopy.EmployeeID;
                 OnProject = toCopy.OnProject;
                 _tasks = toCopy.GetTasksCopy();
-                ProjectTheme = toCopy.ProjectTheme;
+                Project = toCopy.Project;
             }
             else
                 throw new NullReferenceException();
         }
-        public void AddOnProject(string theme)
+        public void AddOnProject(Project prj)
         {
-            OnProject = true;
-            ProjectTheme = theme;
+            if (prj != null)
+            {
+                OnProject = true;
+                Project = prj;
+            }
+            else
+                throw new NullReferenceException();
         }
         public void OutOfProject()
         {
             OnProject = false;
-            ProjectTheme = "Out of project";
+            Project = null;
             OnTask = 0;
             InWork = 0;
             _tasks = null;

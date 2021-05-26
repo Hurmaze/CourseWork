@@ -23,7 +23,7 @@ namespace Projects
                 _statusCounter = new StatusCounter();
                 ID = ++_counterID;
                 foreach (Employee worker in _workers)
-                    worker.AddOnProject(this.Theme);
+                    worker.AddOnProject(this);
             }
             else
                 throw new NullReferenceException();
