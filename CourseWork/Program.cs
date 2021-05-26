@@ -12,6 +12,10 @@ namespace CourseWork
             Console.BackgroundColor = ConsoleColor.White;
             Console.Clear();
             var manager = CreateManager();
+            ManagerManipulate(manager);
+        }
+        static void ManagerManipulate(ProjectManager manager)
+        {
             bool alive = true;
             while (alive)
             {
@@ -20,8 +24,9 @@ namespace CourseWork
                 Console.WriteLine("What do you want to do? ");
                 Console.WriteLine(" 1. Create a project.   2.Manipulate with a project.  ");
                 Console.WriteLine(" 3. Show all projects.  4. Finish a project.       ");
-                Console.WriteLine(" 5. Show all workers.   6. Simulate 8 hours. "); 
+                Console.WriteLine(" 5. Show all workers.   6. Simulate 8 hours. ");
                 Console.WriteLine(" 7. Leave the program. ");
+                Console.ForegroundColor = color;
                 try
                 {
                     int command = Int32.Parse(Console.ReadLine());
@@ -40,18 +45,17 @@ namespace CourseWork
                             FinishProject(manager);
                             break;
                         case 5:
-
+                            ShowInfo(manager);
                             break;
                         case 6:
-                            foreach (Project prj in manager.GetProjects())
-                                prj.Simulate8Hours();
+                            manager.Simulate8Hours();
                             break;
                         case 7:
                             alive = false;
                             break;
                     }
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     var clr = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -85,6 +89,7 @@ namespace CourseWork
                 Console.WriteLine(" 4. Finish task.                5. Delete task.         6. Change description.");
                 Console.WriteLine(" 7. Get full info about task.   8. Show all statuses.   9. Info about employees. ");
                 Console.WriteLine(" 10. Leave the project. ");
+                Console.ForegroundColor = color;
                 try
                 {
                     int command = Int32.Parse(Console.ReadLine());
@@ -172,7 +177,7 @@ namespace CourseWork
                 }
                 catch { Console.WriteLine("You have entered a wrong value. The value should be positive integer number. "); };
             }
-            ProjectManager manager = new ProjectManager(emp, ChangeNumOfTasksHandler);
+            ProjectManager manager = new ProjectManager(emp, ChangeNumOfTasksHandler, TimeHandler);
             return manager;
         }
         static void CreateProject(ProjectManager manager)
@@ -193,7 +198,7 @@ namespace CourseWork
             }
             Console.WriteLine("Write a theme of project: ");
             string theme = Console.ReadLine();
-            manager.AddProject(emp, theme, ChangeNumOfTasksHandler, TimeHandler);
+            manager.AddProject(emp, theme, ChangeNumOfTasksHandler);
             Console.ForegroundColor = clr;
         }
         static void FinishProject(ProjectManager manager)
@@ -317,7 +322,7 @@ namespace CourseWork
                         throw new ArgumentException();
                     option = false;
                 }
-                catch { Console.WriteLine("You have ntered wrong value. Try again. "); }
+                catch { Console.WriteLine("You have entered wrong value. Try again. "); }
             }
             switch (cmd)
             {
@@ -325,22 +330,10 @@ namespace CourseWork
                 case 2: { prior = Priority.Medium; break; }
                 case 3: { prior = Priority.Low; break; }
             }
-            Console.WriteLine("Write a ruquired number of workers.");
-            uint workers = 0;
-            option = true;
-            while (option)
-            {
-                try
-                {
-                    workers = UInt32.Parse(Console.ReadLine());
-                    option = false;
-                }
-                catch { Console.WriteLine("You have ntered wrong value. Try again. "); }
-            }
             if (hours == 0)
-                project.AddTask(descr, name, timeToDo, prior, workers, ChangeStatusHandler, ChangeDescriptionHandler);
+                project.AddTask(descr, name, timeToDo, prior, ChangeStatusHandler, ChangeDescriptionHandler);
             else
-                project.AddTask(descr, name, hours, prior, workers, ChangeStatusHandler, ChangeDescriptionHandler);
+                project.AddTask(descr, name, hours, prior, ChangeStatusHandler, ChangeDescriptionHandler);
             Console.ForegroundColor = clr;
         }
         static void ShowInfo(Project project, string option)
@@ -351,7 +344,7 @@ namespace CourseWork
             {
                 case "general":
                     {
-                        List<Task> tasks = project.GetAllTasks();
+                        List<Task> tasks = project.GetTasksCopy();
                         if (tasks != null)
                         {
                             for (int i = 0; i < tasks.Count; i++)
@@ -407,18 +400,11 @@ namespace CourseWork
                             Console.WriteLine($"Id:{task.ID} Name: {task.Name}. Priority: {task.Priority}. Status: {task.Status}. ");
                         }
                         Console.WriteLine($"Description: {task.Description}");
-                        var emps = task.GetWorkers();
-                        Console.Write("Workers:  ");
-                        foreach (Employee emp in emps)
-                        {
-                            Console.Write($"{emp.Name},  ");
-                        }
-                        Console.WriteLine();
                         break;
                     }
                 case "workers":
                     {
-                        var temp = project.GetWorkers();
+                        var temp = project.GetWorkersCopy();
                         Console.WriteLine($"Number of projects` workers: {temp.Count}");
                         foreach(Employee emp in temp)
                             Console.WriteLine($"Worker {emp.Name} with id {emp.EmployeeID} has {emp.OnTask} tasks, and is doing right now {emp.InWork} tasks.");
@@ -429,7 +415,11 @@ namespace CourseWork
         }
         static void ShowInfo(ProjectManager manager)
         {
-
+            var employees = manager.GetWorkersCopy();
+            foreach(Employee emp in employees)
+            {
+                Console.WriteLine($"ID: {emp.EmployeeID}, Name: {emp.Name}, Project: {emp.ProjectTheme}, Has {emp.OnTask} tasks. ");
+            }
         }
         static void ShowAllProjects(ProjectManager manager)
         {
@@ -438,7 +428,7 @@ namespace CourseWork
             var projects = manager.GetProjects();
             foreach(Project prj in projects)
             {
-                Console.WriteLine($"ID: {prj.ID}, Number of workers: {prj.GetWorkers().Count}, Theme: {prj.Theme}");
+                Console.WriteLine($"ID: {prj.ID}, Number of workers: {prj.GetWorkersCopy().Count}, Theme: {prj.Theme}");
             }
             Console.ForegroundColor = clr;
         }

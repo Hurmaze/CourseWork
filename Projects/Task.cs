@@ -1,20 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Projects
 {
     public class Task
     {
-        private event TaskHandlerDelegate _descriptionEvent;
-        private event TaskHandlerDelegate _changeStatusEvent;
-        private static uint _counterId = 0;
-        public uint ID { get; private set; }
-        private List<Employee> _workers;
+        private event TaskHandlerDelegate DescriptionEvent;
+        private event TaskHandlerDelegate ChangeStatusEvent;
+        private static uint _counterID = 0;
+        public readonly uint ID;
         private (int days, int hours, int minutes) _timeToDo;
         private string _description;
         private string _name;
         public Status Status { get; private set; }
-        public Priority Priority { get; set; }
+        public Priority Priority { get; private set; }
         public string Description
         {
             set
@@ -22,7 +20,7 @@ namespace Projects
                 if (value.Length >= 3)
                 {
                     _description = value;
-                    _descriptionEvent?.Invoke(this, new TaskHandlerArgs("The description has been successfully changed."));
+                    DescriptionEvent?.Invoke(this, new TaskHandlerArgs("The description has been successfully changed."));
                 }
                 else
                     throw new ArgumentException("The description is too short. The task hasn`t been created. ");
@@ -40,39 +38,30 @@ namespace Projects
                 if (value.Length >= 3 && value.Length <= 25)
                     _name = value;
                 else if (value.Length <= 3)
-                    throw new ArgumentException("The preview is too short. The task hasn`t been created. ");
+                    throw new ArgumentException("The name is too short. The task hasn`t been created. ");
                 else
-                    throw new ArgumentException("The preview is too long. The task hasn`t been created. ");
+                    throw new ArgumentException("The name is too long. The task hasn`t been created. ");
             }
         }
-        public Task(string description, string name, (int days, int hours, int minutes) time, Priority priority, List<Employee> workers,
+        public Task(string description, string name, (int days, int hours, int minutes) time, Priority priority,
             TaskHandlerDelegate ChangeStatus, TaskHandlerDelegate ChangeDescription)
         {
-            if (workers!=null)
-            {
-                _changeStatusEvent += ChangeStatus;
-                Description = description;
-                _descriptionEvent += ChangeDescription;
-                Name = name;
-                SetTimeToDo(time.days, time.hours, time.minutes);
-                Priority = priority;
-                Status = Status.Unstarted;
-                _workers = workers;
-                ID = ++_counterId;
-                foreach (Employee worker in _workers)
-                    worker.AddOnTask(this);
-            }
+            ChangeStatusEvent += ChangeStatus;
+            Description = description;
+            DescriptionEvent += ChangeDescription;
+            Name = name;
+            SetTimeToDo(time.days, time.hours, time.minutes);
+            Priority = priority;
+            Status = Status.Unstarted;
+            ID = ++_counterID;
         }
         public Task(Task toCopy)
         {
             if (toCopy != null)
             {
-                _workers = new List<Employee>();
                 _description = toCopy._description;
                 Name = toCopy.Name;
                 ID = toCopy.ID;
-                foreach (Employee worker in toCopy._workers)
-                    _workers.Add(new Employee(worker));
                 _timeToDo = toCopy._timeToDo;
                 Status = toCopy.Status;
                 Priority = toCopy.Priority;
@@ -87,9 +76,7 @@ namespace Projects
             if (Status == Status.Unstarted)
             {
                 Status = Status.InProgress;
-                foreach (Employee worker in _workers)
-                    worker.StartedTask();
-                _changeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully started. ", ID));
+                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully started. ", ID));
             }
             else if (Status == Status.InProgress)
                 throw new InvalidOperationException("The task has been already started. Current status is InProgress");
@@ -103,22 +90,13 @@ namespace Projects
             else
             {
                 Status = Status.Done;
-                foreach(Employee worker in _workers)
-                {
-                    worker.DoneTask(this);
-                }
-                _changeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully finished. ", ID));
+                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully finished. ", ID));
             }
-        }
-        public void DeleteTask()
-        {
-            foreach (Employee emp in _workers)
-                emp.DoneTask(this);
         }
         public void Overterm()
         {
             Status = Status.Overtermed;
-            _changeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has overtermed. ", ID));
+            ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has overtermed. ", ID));
         }
         public void SimulateHours(int hours)
         {
@@ -143,13 +121,6 @@ namespace Projects
                 _timeToDo.days -= hours / 24;
                 _timeToDo.hours -= hours % 24;
             }
-        }
-        public List<Employee> GetWorkers()
-        {
-            var temp = new List<Employee>();
-            foreach (Employee emp in _workers)
-                temp.Add(emp);
-            return temp;
         }
         private void SetTimeToDo(int days, int hours, int minutes)
         {

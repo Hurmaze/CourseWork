@@ -5,27 +5,25 @@ namespace Projects
 {
     public class Project
     {
-        private static uint _projectID = 0;
-        public uint ID { get; private set; }
-        private event TaskHandlerDelegate _changeNumOfTasks;
-        private event TaskHandlerDelegate _timeEvent;
+        private static uint _counterID = 0;
+        public readonly uint ID;
+        private event TaskHandlerDelegate ChangeNumOfTasks;
         private List<Task> _tasks;
         private List<Employee> _workers;
         public string Theme { get; private set; }
         private StatusCounter _statusCounter;
-        public Project(List<Employee> emp, string theme, TaskHandlerDelegate ChangeNumOfTasks, TaskHandlerDelegate TimeIsRunning)
+        public Project(List<Employee> emp, string theme, TaskHandlerDelegate ChangeNumOfTasks)
         {
             if (emp != null)
             {
                 _workers = emp;
                 _tasks = new List<Task>();
-                _changeNumOfTasks += ChangeNumOfTasks;
-                _timeEvent += TimeIsRunning;
+                this.ChangeNumOfTasks += ChangeNumOfTasks;
                 Theme = theme;
                 _statusCounter = new StatusCounter();
-                ID = ++_projectID;
+                ID = ++_counterID;
                 foreach (Employee worker in _workers)
-                    worker.AddOnProject(this);
+                    worker.AddOnProject(this.Theme);
             }
             else
                 throw new NullReferenceException();
@@ -35,53 +33,47 @@ namespace Projects
             if (toCopy != null)
             {
                 ID = toCopy.ID;
-                _changeNumOfTasks = toCopy._changeNumOfTasks;
-                _timeEvent = toCopy._timeEvent;
-                _tasks = toCopy.GetAllTasks();
-                _workers = toCopy.GetWorkers();
+                ChangeNumOfTasks = toCopy.ChangeNumOfTasks;
+                _tasks = toCopy.GetTasksCopy();
+                _workers = toCopy.GetWorkersCopy();
                 Theme = toCopy.Theme;
                 _statusCounter = new StatusCounter(toCopy._statusCounter);
             }
             else
                 throw new NullReferenceException();
         }
-        public void AddTask(string description, string preview, double timeToDo, Priority priority, uint numOfWorkers,
+        public void AddTask(string description, string preview, double timeToDo, Priority priority, 
             TaskHandlerDelegate ChangeStatus, TaskHandlerDelegate ChangeDescription)
         {
             var time = FormatTime(timeToDo);
-            this.AddTask(description, preview, time, priority, numOfWorkers, ChangeStatus, ChangeDescription);
+            this.AddTask(description, preview, time, priority, ChangeStatus, ChangeDescription);
         }
-        public void AddTask(string description, string preview, (int days, int hours, int minutes) timeToDo, Priority priority, uint numOfWorkers,
+        public void AddTask(string description, string preview, (int days, int hours, int minutes) timeToDo, Priority priority, 
             TaskHandlerDelegate ChangeStatus, TaskHandlerDelegate ChangeDescription)
         {
-            if (numOfWorkers <= _workers.Count)
+            Employee toTask = null;
+            int countTask = 0;
+            while(true)
             {
-                List<Employee> toTask = new List<Employee>();
-                for (int i =0;i<_workers.Count;i++)
+                foreach (Employee worker in _workers)
                 {
-                    int countTask = 0;
-                    foreach (Employee worker in _workers)
+                    if (worker.OnTask <= countTask)
                     {
-                        if(worker.OnTask <= countTask)
-                        {
-                            toTask.Add(worker);
-                            if (toTask.Count == numOfWorkers)
-                                break;
-                        }
-                    }
-                    if (toTask.Count == numOfWorkers)
+                        toTask = worker;
                         break;
-                    else
-                        countTask++;
+                    }
                 }
-                Task newTask = new Task(description, preview, timeToDo, priority, toTask, ChangeStatus, ChangeDescription);
-                _tasks.Add(newTask);
-                _statusCounter.NumOfUnstarted++;
-                uint id = newTask.ID;
-                _changeNumOfTasks?.Invoke(this, new TaskHandlerArgs($"Task with an id {id} has been successfully added. ", id));
+                if (toTask != null)
+                    break;
+                else
+                    countTask++;
             }
-            else
-                throw new ArgumentException("A required number of workers is more than the project has. ");
+            Task newTask = new Task(description, preview, timeToDo, priority, ChangeStatus, ChangeDescription);
+            _tasks.Add(newTask);
+            toTask.AddOnTask(newTask);
+            _statusCounter.NumOfUnstarted++;
+            uint id = newTask.ID;
+            ChangeNumOfTasks?.Invoke(this, new TaskHandlerArgs($"Task with an id {id} has been successfully added. ", id)); 
         }
         public void DeleteTask(uint id)
         {
@@ -92,8 +84,13 @@ namespace Projects
                 Task taskToDel = FindTask(id);
                 if (taskToDel != null)
                 {
+                    foreach(Employee worker in _workers)
+                        if (worker.Has(taskToDel))
+                        {
+                            worker.DoneTask(taskToDel);
+                            break;
+                        }
                     _tasks.Remove(taskToDel);
-                    taskToDel.DeleteTask();
                     switch (taskToDel.Status)
                     {
                         case Status.Unstarted:
@@ -109,20 +106,20 @@ namespace Projects
                             _statusCounter.NumOfOvertermed--;
                             break;
                     }
-                    _changeNumOfTasks?.Invoke(this, new TaskHandlerArgs($"Task with an id {id} has been successfully deleted. ", id));
+                    ChangeNumOfTasks?.Invoke(this, new TaskHandlerArgs($"Task with an id {id} has been successfully deleted. ", id));
                 }
                 else
                     throw new MissingMemberException($"A task with id {id} is not exist. ");
             }
         }
-        public List<Task> GetAllTasks()
+        public List<Task> GetTasksCopy()
         {
             List<Task> temp = new List<Task>();
             foreach (Task task in _tasks)
                 temp.Add(new Task(task));
             return temp;
         }
-        public List<Employee> GetWorkers()
+        public List<Employee> GetWorkersCopy()
         {
             List<Employee> temp = new List<Employee>();
             foreach (Employee worker in _workers)
@@ -144,6 +141,12 @@ namespace Projects
                 Task taskToStart = FindTask(id);
                 if (taskToStart != null)
                 {
+                    foreach (Employee worker in _workers)
+                        if (worker.Has(taskToStart))
+                        {
+                            worker.StartTask();
+                            break;
+                        }
                     taskToStart.StartTask();
                     _statusCounter.NumOfUnstarted--;
                     _statusCounter.NumOfInProgress++;
@@ -162,6 +165,12 @@ namespace Projects
                 if (taskToFinish != null)
                 {
                     var curStatus = taskToFinish.Status;
+                    foreach (Employee worker in _workers)
+                        if (worker.Has(taskToFinish))
+                        {
+                            worker.DoneTask(taskToFinish);
+                            break;
+                        }
                     taskToFinish.FinishTask();
                     switch (curStatus)
                     {
@@ -215,7 +224,6 @@ namespace Projects
                     }
                 }
             }
-            _timeEvent?.Invoke(this, new TaskHandlerArgs($"8 hours later..."));
         }
         public void FinishProject()
         {
