@@ -17,6 +17,7 @@ namespace Projects
             _numOfDone = 0;
             _numOfOvertermed = 0;
         }
+        /// <exception cref="ArgumentException"></exception>
         public int NumOfUnstarted
         {
             get { return _numOfUnstarted; }
@@ -28,6 +29,7 @@ namespace Projects
                     throw new ArgumentException("A number of tasks cannot be less than zero. Something went wrong...");
             }
         }
+        /// <exception cref="ArgumentException"></exception>
         public int NumOfInProgress
         {
             get { return _numOfInProgress; }
@@ -39,6 +41,7 @@ namespace Projects
                     throw new ArgumentException("A number of tasks cannot be less than zero. Something went wrong...");
             }
         }
+        /// <exception cref="ArgumentException"></exception>
         public int NumOfDone
         {
             get { return _numOfDone; }
@@ -50,6 +53,7 @@ namespace Projects
                     throw new ArgumentException("A number of tasks cannot be less than zero. Something went wrong...");
             }
         }
+        /// <exception cref="ArgumentException"></exception>
         public int NumOfOvertermed
         {
             get { return _numOfOvertermed; }

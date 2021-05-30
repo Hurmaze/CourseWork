@@ -7,11 +7,12 @@ namespace Projects
     {
         private static uint _counterID = 0;
         public readonly uint ID;
-        private event TaskHandlerDelegate ChangeNumOfTasks;
+        public event TaskHandlerDelegate ChangeNumOfTasks;
         private List<Task> _tasks;
         private List<Employee> _workers;
         public string Theme { get; private set; }
         private StatusCounter _statusCounter;
+        /// <exception cref="NullReferenceException"></exception>
         public Project(List<Employee> emp, string theme, TaskHandlerDelegate ChangeNumOfTasks)
         {
             if (emp != null)
@@ -24,20 +25,6 @@ namespace Projects
                 ID = ++_counterID;
                 foreach (Employee worker in _workers)
                     worker.AddOnProject(this);
-            }
-            else
-                throw new NullReferenceException();
-        }
-        public Project(Project toCopy)
-        {
-            if (toCopy != null)
-            {
-                ID = toCopy.ID;
-                ChangeNumOfTasks = toCopy.ChangeNumOfTasks;
-                _tasks = toCopy.GetTasksCopy();
-                _workers = toCopy.GetWorkersCopy();
-                Theme = toCopy.Theme;
-                _statusCounter = new StatusCounter(toCopy._statusCounter);
             }
             else
                 throw new NullReferenceException();
@@ -68,13 +55,15 @@ namespace Projects
                 else
                     countTask++;
             }
-            Task newTask = new Task(description, preview, timeToDo, priority, ChangeStatus, ChangeDescription);
+            Task newTask = new Task(description, preview, timeToDo, priority, ChangeStatus, ChangeDescription, ChangeStatusHandler);
             _tasks.Add(newTask);
             toTask.AddOnTask(newTask);
             _statusCounter.NumOfUnstarted++;
             uint id = newTask.ID;
             ChangeNumOfTasks?.Invoke(this, new TaskHandlerArgs($"Task with an id {id} has been successfully added. ", id)); 
         }
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
         public void DeleteTask(uint id)
         {
             if (id == 0)
@@ -131,7 +120,8 @@ namespace Projects
             StatusCounter temp = new StatusCounter(_statusCounter);
             return temp;
         }
-
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
         public void StartTask(uint id)
         {
             if (id == 0)
@@ -148,13 +138,13 @@ namespace Projects
                             break;
                         }
                     taskToStart.StartTask();
-                    _statusCounter.NumOfUnstarted--;
-                    _statusCounter.NumOfInProgress++;
                 }
                 else
                     throw new MissingMemberException($"A task with id {id} is not exist. ");
             }
         }
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
         public void FinishTask(uint id)
         {
             if (id == 0)
@@ -164,7 +154,6 @@ namespace Projects
                 Task taskToFinish = FindTask(id);
                 if (taskToFinish != null)
                 {
-                    var curStatus = taskToFinish.Status;
                     foreach (Employee worker in _workers)
                         if (worker.Has(taskToFinish))
                         {
@@ -172,18 +161,13 @@ namespace Projects
                             break;
                         }
                     taskToFinish.FinishTask();
-                    switch (curStatus)
-                    {
-                        case Status.InProgress: { _statusCounter.NumOfInProgress--; break; }
-                        case Status.Unstarted: { _statusCounter.NumOfUnstarted--; break; }
-                        case Status.Overtermed: { _statusCounter.NumOfOvertermed--; break; }
-                    }
-                    _statusCounter.NumOfDone++;
                 }
                 else
                     throw new MissingMemberException($"A task with id {id} is not exist. ");
             }
         }
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
         public Task GetSpecificTask(uint id)
         {
             if (id == 0)
@@ -200,6 +184,7 @@ namespace Projects
                     throw new MissingMemberException($"A task with id {id} is not exist. ");
             }
         }
+        /// <exception cref="MissingMemberException"></exception>
         public void ChangeDescritpion(uint id, string desc)
         {
             Task temp = FindTask(id);
@@ -219,8 +204,6 @@ namespace Projects
                     if (time.Item1 <= 0 && time.Item2 <= 0 && time.Item3 <= 0)
                     {
                         _tasks[i].Overterm();
-                        _statusCounter.NumOfInProgress--;
-                        _statusCounter.NumOfOvertermed++;
                     }
                 }
             }
@@ -251,6 +234,41 @@ namespace Projects
             double temp = Math.Round((double)time, 2);
             timeToDo.minutes = (int)((temp - Math.Truncate(temp)) * 60);
             return timeToDo;
+        }
+        private void ChangeStatusHandler(object sender, TaskHandlerArgs arg)
+        {
+            var prevStatus = arg.PrevStatus;
+            switch (prevStatus)
+            {
+                case Status.Unstarted:
+                    _statusCounter.NumOfUnstarted--;
+                    break;
+                case Status.InProgress:
+                    _statusCounter.NumOfInProgress--;
+                    break;
+                case Status.Done:
+                    _statusCounter.NumOfDone--;
+                    break;
+                case Status.Overtermed:
+                    _statusCounter.NumOfOvertermed--;
+                    break;
+            }
+            var newStatus = arg.NewStatus;
+            switch (newStatus)
+            {
+                case Status.Unstarted:
+                    _statusCounter.NumOfUnstarted++;
+                    break;
+                case Status.InProgress:
+                    _statusCounter.NumOfInProgress++;
+                    break;
+                case Status.Done:
+                    _statusCounter.NumOfDone++;
+                    break;
+                case Status.Overtermed:
+                    _statusCounter.NumOfOvertermed++;
+                    break;
+            }
         }
     }
 }

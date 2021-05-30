@@ -419,7 +419,7 @@ namespace CourseWork
             foreach(Employee emp in employees)
             {
                 if (emp.Project!=null)
-                    Console.WriteLine($"ID: {emp.EmployeeID}, Name: {emp.Name}, Project: {emp.Project}, Has {emp.OnTask} tasks. ");
+                    Console.WriteLine($"ID: {emp.EmployeeID}, Name: {emp.Name}, Project: {emp.Project.Theme}, Has {emp.OnTask} tasks. ");
                 else
                     Console.WriteLine($"ID: {emp.EmployeeID}, Name: {emp.Name}, Project: Out of project, Has {emp.OnTask} tasks. ");
             }

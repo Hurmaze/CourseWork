@@ -8,8 +8,8 @@ namespace Projects
     {
         private List<Employee> _employees;
         private List<Project> _projects;
-        private event TaskHandlerDelegate ChangeNumOfProjects;
-        private event TaskHandlerDelegate TimeChanging;
+        public event TaskHandlerDelegate ChangeNumOfProjects;
+        public event TaskHandlerDelegate TimeChanging;
         public ProjectManager(uint numOfEmployees, TaskHandlerDelegate ChangeNumOfProjects, TaskHandlerDelegate TimeIsRunning)
         {
             _projects = new List<Project>();
@@ -19,11 +19,13 @@ namespace Projects
             ChangeNumOfProjects += ChangeNumOfProjects;
             TimeChanging += TimeIsRunning;
         }
+        /// <exception cref="ArgumentException"></exception>
         public void AddProject(uint numOfWorkers, string description, TaskHandlerDelegate ChangeNumOfTasks)
         {
             if(_employees.Count<numOfWorkers)
                 throw new ArgumentException("A required number of workers is more than the company has. ");
             List<Employee> toProject = new List<Employee>();
+
             foreach (Employee emp in _employees)
             {
                 if (emp.OnProject == false)
@@ -31,12 +33,15 @@ namespace Projects
                 if (toProject.Count == numOfWorkers)
                     break;
             }
+
             if (toProject.Count<numOfWorkers)
                 throw new ArgumentException("A required number of workers is more than free workers. ");
             var temp = new Project(toProject, description, ChangeNumOfTasks);
             _projects.Add(temp);
+
             ChangeNumOfProjects?.Invoke(this, new TaskHandlerArgs($"Task with an id {temp.ID} has been successfully added. ", temp.ID));
         }
+        /// <exception cref="MissingMemberException"></exception>
         public void FinishProject(uint ID)
         {
             bool del = false;
@@ -54,6 +59,7 @@ namespace Projects
             else
                 ChangeNumOfProjects?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully finished. ", ID));
         }
+        /// <exception cref="MissingMemberException"></exception>
         public Project FindProject(uint id)
         {
             foreach(Project prj in _projects)

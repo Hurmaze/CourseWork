@@ -4,8 +4,8 @@ namespace Projects
 {
     public class Task
     {
-        private event TaskHandlerDelegate DescriptionEvent;
-        private event TaskHandlerDelegate ChangeStatusEvent;
+        public event TaskHandlerDelegate DescriptionEvent;
+        public event TaskHandlerDelegate ChangeStatusEvent;
         private static uint _counterID = 0;
         public readonly uint ID;
         private (int days, int hours, int minutes) _timeToDo;
@@ -13,6 +13,7 @@ namespace Projects
         private string _name;
         public Status Status { get; private set; }
         public Priority Priority { get; private set; }
+        /// <exception cref="ArgumentException"></exception>
         public string Description
         {
             set
@@ -30,6 +31,7 @@ namespace Projects
                 return _description;
             }
         }
+        /// <exception cref="ArgumentException"></exception>
         public string Name
         {
             get { return _name; }
@@ -44,9 +46,10 @@ namespace Projects
             }
         }
         public Task(string description, string name, (int days, int hours, int minutes) time, Priority priority,
-            TaskHandlerDelegate ChangeStatus, TaskHandlerDelegate ChangeDescription)
+            TaskHandlerDelegate ChangeStatus, TaskHandlerDelegate ChangeDescription, TaskHandlerDelegate StatusCounter)
         {
             ChangeStatusEvent += ChangeStatus;
+            ChangeStatusEvent += StatusCounter;
             Description = description;
             DescriptionEvent += ChangeDescription;
             Name = name;
@@ -71,32 +74,37 @@ namespace Projects
         {
             return _timeToDo;
         }
+        /// <exception cref="InvalidOperationException"></exception>
         public void StartTask()
         {
             if (Status == Status.Unstarted)
             {
+                var prev = Status;
                 Status = Status.InProgress;
-                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully started. ", ID));
+                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully started. ", ID, prev, Status));
             }
             else if (Status == Status.InProgress)
                 throw new InvalidOperationException("The task has been already started. Current status is InProgress");
             else
                 throw new InvalidOperationException("The task has been already finished.");
         }
+        /// <exception cref="InvalidOperationException"></exception>
         public void FinishTask()
         {
             if (Status == Status.Done)
                 throw new InvalidOperationException("The task has been already finished.");
             else
             {
+                var prev = Status;
                 Status = Status.Done;
-                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully finished. ", ID));
+                ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been successfully finished. ", ID, prev, Status));
             }
         }
         public void Overterm()
         {
+            var prev = Status;
             Status = Status.Overtermed;
-            ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has overtermed. ", ID));
+            ChangeStatusEvent?.Invoke(this, new TaskHandlerArgs($"Task with an id {ID} has been overtermed. ", ID, prev, Status));
         }
         public void SimulateHours(int hours)
         {

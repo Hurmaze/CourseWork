@@ -22,6 +22,7 @@ namespace Projects
             _tasks = new List<Task>();
             OnProject = false;
         }
+        /// <exception cref="NullReferenceException"></exception>
         public Employee(Employee toCopy)
         {
             if (toCopy != null)
@@ -37,6 +38,7 @@ namespace Projects
             else
                 throw new NullReferenceException();
         }
+        /// <exception cref="NullReferenceException"></exception>
         public void AddOnProject(Project prj)
         {
             if (prj != null)
@@ -55,6 +57,7 @@ namespace Projects
             InWork = 0;
             _tasks = null;
         }
+        /// <exception cref="NullReferenceException"></exception>
         public void AddOnTask(Task task)
         {
             if (task != null)
@@ -69,6 +72,8 @@ namespace Projects
         {
             InWork++;
         }
+        /// <exception cref="NullReferenceException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
         public void DoneTask(Task task)
         {
             if (task!=null)
@@ -94,6 +99,7 @@ namespace Projects
                 temp.Add(new Task(task));
             return temp;
         }
+        /// <exception cref="NullReferenceException"></exception>
         public bool Has(Task task)
         {
             if(task!=null)
